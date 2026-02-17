@@ -165,30 +165,20 @@ export function ChatInterface() {
         const files = e.target.files
         if (!files || files.length === 0) return
 
-        const newAttachments: Attachment[] = []
-
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i]
-        }
-
-        const file = files[0] // Corrected loop usage
-
-        // Convert file to base64
-        const reader = new FileReader()
-        reader.onload = (event) => {
-            const base64 = event.target?.result as string
-            newAttachments.push({
-                type: "file",
-                name: file.name,
-                data: base64,
-                mimeType: file.type
-            })
-
-            if (newAttachments.length === files.length) {
-                setAttachments(prev => [...prev, ...newAttachments])
+        // Process all selected files
+        Array.from(files).forEach(file => {
+            const reader = new FileReader()
+            reader.onload = (event) => {
+                const base64 = event.target?.result as string
+                setAttachments(prev => [...prev, {
+                    type: "file",
+                    name: file.name,
+                    data: base64,
+                    mimeType: file.type
+                }])
             }
-        }
-        reader.readAsDataURL(file)
+            reader.readAsDataURL(file)
+        })
 
         // Reset file input
         if (fileInputRef.current) {
@@ -216,7 +206,8 @@ export function ChatInterface() {
         e?.preventDefault()
 
         const content = overrideContent || inputValue
-        if (!content.trim()) return
+        // Allow sending if there's text OR attachments
+        if (!content.trim() && attachments.length === 0) return
 
         const userMessage: Message = {
             id: Date.now().toString(),
