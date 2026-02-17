@@ -43,7 +43,7 @@ export default function Home() {
       {/* Features Section */}
       <section className="container py-24 px-4 md:px-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
-          <div className="flex flex-col items-center md:items-start space-y-4 p-8 rounded-2xl glass-premium hover-lift transition-all animate-float">
+          <Link href="/chat" className="flex flex-col items-center md:items-start space-y-4 p-8 rounded-2xl glass-premium hover-lift transition-all animate-float cursor-pointer block h-full">
             <div className="p-4 rounded-xl bg-primary/10 text-primary animate-pulse-slow shadow-inner">
               <Bot className="h-8 w-8" />
             </div>
@@ -51,8 +51,8 @@ export default function Home() {
             <p className="text-muted-foreground leading-relaxed">
               Ask questions in plain language. "How do I apply for a passport?" or "What are the benefits of PM-KISAN?"
             </p>
-          </div>
-          <div className="flex flex-col items-center md:items-start space-y-4 p-8 rounded-2xl glass-premium hover-lift transition-all animate-float-delayed">
+          </Link>
+          <Link href="/forms" className="flex flex-col items-center md:items-start space-y-4 p-8 rounded-2xl glass-premium hover-lift transition-all animate-float-delayed cursor-pointer block h-full">
             <div className="p-4 rounded-xl bg-primary/10 text-primary animate-pulse-slow shadow-inner">
               <FileText className="h-8 w-8" />
             </div>
@@ -60,8 +60,8 @@ export default function Home() {
             <p className="text-muted-foreground leading-relaxed">
               Stop struggling with complex forms. Our AI guides you field-by-field and validates your inputs.
             </p>
-          </div>
-          <div className="flex flex-col items-center md:items-start space-y-4 p-8 rounded-2xl glass-premium hover-lift transition-all animate-float">
+          </Link>
+          <Link href="/chat" className="flex flex-col items-center md:items-start space-y-4 p-8 rounded-2xl glass-premium hover-lift transition-all animate-float cursor-pointer block h-full">
             <div className="p-4 rounded-xl bg-primary/10 text-primary animate-pulse-slow shadow-inner">
               <Globe className="h-8 w-8" />
             </div>
@@ -69,7 +69,7 @@ export default function Home() {
             <p className="text-muted-foreground leading-relaxed">
               Access services in your preferred language. We support English, Hindi, and regional languages.
             </p>
-          </div>
+          </Link>
         </div>
       </section>
 
