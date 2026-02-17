@@ -165,20 +165,24 @@ export function ChatInterface() {
         const files = e.target.files
         if (!files || files.length === 0) return
 
-        // Process all selected files
-        Array.from(files).forEach(file => {
-            const reader = new FileReader()
-            reader.onload = (event) => {
-                const base64 = event.target?.result as string
-                setAttachments(prev => [...prev, {
-                    type: "file",
-                    name: file.name,
-                    data: base64,
-                    mimeType: file.type
-                }])
-            }
-            reader.readAsDataURL(file)
+        const filePromises = Array.from(files).map(file => {
+            return new Promise<Attachment>((resolve) => {
+                const reader = new FileReader()
+                reader.onload = (event) => {
+                    const base64 = event.target?.result as string
+                    resolve({
+                        type: "file",
+                        name: file.name,
+                        data: base64,
+                        mimeType: file.type
+                    })
+                }
+                reader.readAsDataURL(file)
+            })
         })
+
+        const newAttachments = await Promise.all(filePromises)
+        setAttachments(prev => [...prev, ...newAttachments])
 
         // Reset file input
         if (fileInputRef.current) {
@@ -458,7 +462,7 @@ export function ChatInterface() {
                         ref={fileInputRef}
                         type="file"
                         multiple
-                        accept="image/*,audio/*,.pdf,.doc,.docx,.txt"
+                        accept="image/*,audio/*,application/pdf,.doc,.docx,.txt"
                         onChange={handleFileSelect}
                         className="hidden"
                     />
