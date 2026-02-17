@@ -121,8 +121,8 @@ async function processAttachments(attachments: any[]) {
                 }
             } else if (att.mimeType === "application/pdf") {
                 // Basic placeholder for PDF - full PDF parsing requires pdf-parse or similar lib not installed
-                // For now, acknowledging receipt
-                processed.textContext += `\n**PDF File:** ${att.name} (PDF text text extraction requires additional libraries, but file received)\n`;
+                // Inform the AI to ask the user for details
+                processed.textContext += `\n**PDF File Attached:** ${att.name}\n(Note to AI: You cannot currently read the contents of this PDF file directly. Please ask the user to copy-paste relevant text or summarize the document if they need help with it.)\n`;
             } else {
                 // Plain text files
                 if (att.mimeType === "text/plain") {
