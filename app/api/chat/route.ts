@@ -1,5 +1,6 @@
 import { OpenAI } from "openai"
 import { NextResponse } from "next/server"
+import { toFile } from "openai/uploads"
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -7,7 +8,6 @@ const openai = new OpenAI({
 })
 
 // Initialize Grok (xAI) client
-// xAI is compatible with OpenAI SDk, just need a different base URL and API key
 const xai = new OpenAI({
     apiKey: process.env.XAI_API_KEY || "",
     baseURL: "https://api.x.ai/v1",
@@ -65,9 +65,12 @@ async function performWebSearch(query: string) {
 
 // Helper to process attachments (files and URLs)
 async function processAttachments(attachments: any[]) {
-    if (!attachments || attachments.length === 0) return "";
+    const processed = {
+        textContext: "",
+        imageUrls: [] as string[]
+    };
 
-    const results: string[] = [];
+    if (!attachments || attachments.length === 0) return processed;
 
     for (const att of attachments) {
         if (att.type === "url" && att.url) {
@@ -86,45 +89,83 @@ async function processAttachments(attachments: any[]) {
                 $('script, style, nav, footer, header').remove();
                 const textContent = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 2000);
 
-                results.push(`**Content from URL (${att.name}):**\n${textContent}\n`);
+                processed.textContext += `\n**Content from URL (${att.name}):**\n${textContent}\n`;
             } catch (error) {
-                results.push(`**URL (${att.name}):** Unable to fetch content. URL: ${att.url}\n`);
+                processed.textContext += `\n**URL (${att.name}):** Unable to fetch content. URL: ${att.url}\n`;
             }
         } else if (att.type === "file") {
-            // For files, we have base64 data
+            // Check MIME types
             if (att.mimeType?.startsWith("image/")) {
-                results.push(`**Image File:** ${att.name} (Image analysis not yet implemented, but file received)\n`);
+                // Collect image URLs (base64) for Vision API
+                processed.imageUrls.push(att.data);
+                processed.textContext += `\n[Image Attached: ${att.name}]\n`;
+            } else if (att.mimeType?.startsWith("audio/")) {
+                // Audio Transcription via Whisper
+                try {
+                    // Convert base64 to buffer
+                    const base64Data = att.data.split(';base64,').pop();
+                    const buffer = Buffer.from(base64Data, 'base64');
+
+                    // Create a File object for OpenAI API
+                    const file = await toFile(buffer, "audio.mp3", { type: "audio/mpeg" });
+
+                    const transcription = await openai.audio.transcriptions.create({
+                        file: file,
+                        model: "whisper-1",
+                    });
+
+                    processed.textContext += `\n[Audio Transcription (${att.name})]: "${transcription.text}"\n`;
+                } catch (err: any) {
+                    console.error("Whisper Error:", err);
+                    processed.textContext += `\n[Audio Error]: Could not transcribe audio file: ${att.name}\n`;
+                }
             } else if (att.mimeType === "application/pdf") {
-                results.push(`**PDF File:** ${att.name} (PDF text extraction not yet implemented, but file received)\n`);
+                // Basic placeholder for PDF - full PDF parsing requires pdf-parse or similar lib not installed
+                // For now, acknowledging receipt
+                processed.textContext += `\n**PDF File:** ${att.name} (PDF text text extraction requires additional libraries, but file received)\n`;
             } else {
-                // For text files, we could decode base64 and read
-                results.push(`**File:** ${att.name} (File type: ${att.mimeType})\n`);
+                // Plain text files
+                if (att.mimeType === "text/plain") {
+                    try {
+                        const base64Data = att.data.split(';base64,').pop();
+                        const text = Buffer.from(base64Data, 'base64').toString('utf-8');
+                        processed.textContext += `\n**File Content (${att.name}):**\n${text.slice(0, 2000)}\n`;
+                    } catch (e) {
+                        processed.textContext += `\n**File:** ${att.name} (Unable to read text)\n`;
+                    }
+                } else {
+                    processed.textContext += `\n**File:** ${att.name} (Type: ${att.mimeType})\n`;
+                }
             }
         }
     }
 
-    return results.join("\n");
+    return processed;
 }
 
 export async function POST(req: Request) {
     try {
         const { messages, provider = "openai", language = "en" } = await req.json()
-        const lastUserMessage = messages[messages.length - 1].content
-        const lastMessageAttachments = messages[messages.length - 1].attachments
 
-        console.log("Analyzing Query:", lastUserMessage, "Language:", language)
+        // Extract the latest user message
+        const lastUserMsgIndex = messages.length - 1;
+        const lastUserMessageObj = messages[lastUserMsgIndex];
+        const lastUserContent = lastUserMessageObj.content;
+        const lastMessageAttachments = lastUserMessageObj.attachments;
 
-        // 1. Process attachments if present
-        let attachmentContext = "";
+        console.log("Analyzing Query:", lastUserContent, "Language:", language)
+
+        // 1. Perform Live Search (Always useful for context)
+        const liveSearchResults = await performWebSearch(lastUserContent)
+
+        // 2. Process Attachments (Images, Audio, Docs)
+        let processedData = { textContext: "", imageUrls: [] as string[] };
         if (lastMessageAttachments && lastMessageAttachments.length > 0) {
             console.log("Processing attachments:", lastMessageAttachments.length);
-            attachmentContext = await processAttachments(lastMessageAttachments);
+            processedData = await processAttachments(lastMessageAttachments);
         }
 
-        // 2. Perform Hybrid Search (Knowledge Base + Smart Fallback)
-        const liveSearchResults = await performWebSearch(lastUserMessage)
-
-        // 3. DETAILED EXPLANATION SYSTEM PROMPT
+        // 3. Construct System Prompt
         const systemPrompt = {
             role: "system",
             content: `You are GovAssist, an AI assistant for Indian Citizens.
@@ -135,12 +176,12 @@ export async function POST(req: Request) {
       3.  **Use Context Wisely**: Use the provided live web context to ensure your facts are accurate, but do not just list links. Integrate them into your explanation.
       4.  **Creative Tasks**: If asked to write a letter, essay, or code, do it fully and creatively.
       5.  **Format**: Use Markdown (bolding, lists) for readability.
-      6.  **Attachments**: If the user provided files or URLs, analyze them and provide relevant insights.
+      6.  **Visuals**: If images are provided, analyze them in detail. If audio is provided, read the transcription and respond to it.
       
-      **LIVE WEB CONTEXT (Reference Only):**
+      **LIVE WEB CONTEXT:**
       ${liveSearchResults}
       
-      ${attachmentContext ? `**ATTACHED CONTENT:**\n${attachmentContext}\n` : ""}
+      ${processedData.textContext ? `**ATTACHMENT CONTEXT:**\n${processedData.textContext}\n` : ""}
       
       Time: ${new Date().toLocaleString()}`
         }
@@ -149,17 +190,48 @@ export async function POST(req: Request) {
         let isMock = false;
         let apiErrorDetail = null;
 
+        // 4. Construct Final Messages for API
+        // Sanitize history: strip 'attachments' and 'id' from old messages to keep API clean
+        // Also ensure content is string for history, unless we want to support multi-turn vision history (simplifying for now)
+        const apiMessages = messages.slice(0, -1).map((m: any) => ({
+            role: m.role,
+            content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) // Fallback for complex content in history
+        }));
+
+        // Construct the *current* message with multimodal support
+        let currentUserMessageContent: any = lastUserContent;
+
+        // If we have images, switch to array format
+        if (processedData.imageUrls.length > 0) {
+            currentUserMessageContent = [
+                { type: "text", text: lastUserContent + (processedData.textContext ? `\n\n${processedData.textContext}` : "") },
+                ...processedData.imageUrls.map(url => ({
+                    type: "image_url",
+                    image_url: { url: url }
+                }))
+            ];
+        } else {
+            // Appending context to text if no images forced format change
+            currentUserMessageContent = lastUserContent + (processedData.textContext ? `\n\n${processedData.textContext}` : "");
+        }
+
+        apiMessages.push({
+            role: "user",
+            content: currentUserMessageContent
+        });
+
         // DYNAMIC PROVIDER SELECTION
         try {
             const isGrok = provider === "grok";
             const client = isGrok ? xai : openai;
-            const model = isGrok ? "grok-beta" : "gpt-3.5-turbo";
+            // Use gpt-4o-mini for best balance of cost/speed/vision
+            const model = isGrok ? "grok-beta" : "gpt-4o-mini";
 
             console.log(`Attempting AI Call with ${provider} (${model})...`);
 
             const completion = await client.chat.completions.create({
                 model: model,
-                messages: [systemPrompt, ...messages],
+                messages: [systemPrompt, ...apiMessages],
                 temperature: 0.7,
                 max_tokens: 1500,
             });
@@ -172,7 +244,7 @@ export async function POST(req: Request) {
             apiErrorDetail = aiError.code || aiError.message;
             isMock = true;
 
-            // Handle Insufficient Quota explicitly if needed, but for now fallback silently
+            // Handle Insufficient Quota expressly
             if (aiError.code === 'insufficient_quota') {
                 console.error("CRITICAL: OPENAI QUOTA EXCEEDED. Please check billing.");
                 apiErrorDetail = "insufficient_quota";
