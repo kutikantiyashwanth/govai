@@ -7,6 +7,12 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY || "",
 })
 
+// Initialize Groq client (Free tier, OpenAI-compatible)
+const groq = new OpenAI({
+    apiKey: process.env.GROQ_API_KEY || "",
+    baseURL: "https://api.groq.com/openai/v1",
+})
+
 // Initialize Grok (xAI) client
 const xai = new OpenAI({
     apiKey: process.env.XAI_API_KEY || "",
@@ -221,13 +227,24 @@ export async function POST(req: Request) {
         });
 
         // DYNAMIC PROVIDER SELECTION
+        // Priority: Groq (free) → OpenAI → Grok → Mock
         try {
-            const isGrok = provider === "grok";
-            const client = isGrok ? xai : openai;
-            // Use gpt-4o-mini for best balance of cost/speed/vision
-            const model = isGrok ? "grok-beta" : "gpt-4o-mini";
+            let client;
+            let model;
 
-            console.log(`Attempting AI Call with ${provider} (${model})...`);
+            if (provider === "grok") {
+                client = xai;
+                model = "grok-beta";
+            } else if (process.env.GROQ_API_KEY && provider !== "openai") {
+                // Use Groq as primary (free & fast)
+                client = groq;
+                model = "llama-3.3-70b-versatile";
+            } else {
+                client = openai;
+                model = "gpt-4o-mini";
+            }
+
+            console.log(`Attempting AI Call with ${provider} via ${model}...`);
 
             const completion = await client.chat.completions.create({
                 model: model,
@@ -237,21 +254,40 @@ export async function POST(req: Request) {
             });
 
             response = completion.choices[0].message.content;
-            console.log(`${provider} Explanation Success!`);
+            console.log(`AI Response Success via ${model}!`);
             isMock = false;
         } catch (aiError: any) {
             console.error(`AI API Error (${provider}):`, aiError.message);
             apiErrorDetail = aiError.code || aiError.message;
-            isMock = true;
 
-            // Handle Insufficient Quota expressly
-            if (aiError.code === 'insufficient_quota') {
-                console.error("CRITICAL: OPENAI QUOTA EXCEEDED. Please check billing.");
-                apiErrorDetail = "insufficient_quota";
+            // Try Groq as fallback if primary failed and Groq key exists
+            if (process.env.GROQ_API_KEY && apiErrorDetail !== 'groq_fallback_tried') {
+                try {
+                    console.log("Falling back to Groq...");
+                    const fallback = await groq.chat.completions.create({
+                        model: "llama-3.3-70b-versatile",
+                        messages: [systemPrompt, ...apiMessages],
+                        temperature: 0.7,
+                        max_tokens: 1500,
+                    });
+                    response = fallback.choices[0].message.content;
+                    isMock = false;
+                    console.log("Groq fallback success!");
+                } catch (groqError: any) {
+                    console.error("Groq fallback also failed:", groqError.message);
+                    isMock = true;
+                    response = generateMockResponse(messages, liveSearchResults, language, lastMessageAttachments);
+                }
+            } else {
+                isMock = true;
+                // Handle Insufficient Quota expressly
+                if (aiError.code === 'insufficient_quota') {
+                    console.error("CRITICAL: OPENAI QUOTA EXCEEDED. Please check billing.");
+                    apiErrorDetail = "insufficient_quota";
+                }
+                // FALLBACK - Generate mock response
+                response = generateMockResponse(messages, liveSearchResults, language, lastMessageAttachments);
             }
-
-            // FALLBACK - Generate mock response
-            response = generateMockResponse(messages, liveSearchResults, language, lastMessageAttachments);
         }
 
         return NextResponse.json({

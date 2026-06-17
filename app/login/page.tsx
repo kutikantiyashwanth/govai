@@ -23,7 +23,17 @@ export default function LoginPage() {
     const [isSignUp, setIsSignUp] = useState(false)
     const [successMsg, setSuccessMsg] = useState<string | null>(null)
     const [countdown, setCountdown] = useState<number | null>(null)
+    const [showDemoBypass, setShowDemoBypass] = useState(false)
 
+    const handleDemoLogin = () => {
+        setLoading(true)
+        setError(null)
+        setSuccessMsg("✨ Entered Demo Mode successfully! Redirecting...")
+        setTimeout(() => {
+            router.push("/")
+            router.refresh()
+        }, 1000)
+    }
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -112,6 +122,9 @@ export default function LoginPage() {
                 setCountdown(30) // Start countdown
             } else if (err.message?.includes('Email already registered') || err.message?.includes('already been registered')) {
                 setError("📧 This email is already registered. Try signing in instead!")
+            } else if (err.message === "Failed to fetch" || err.name === "TypeError" || err.message?.includes("fetch")) {
+                setError("🔌 Database connection offline: The Supabase project is paused or deleted. You can bypass this by continuing in Demo Mode below.")
+                setShowDemoBypass(true)
             } else {
                 setError(err.message || "Authentication failed. Please try again.")
             }
@@ -151,7 +164,7 @@ export default function LoginPage() {
                     <form onSubmit={handleAuth} className="space-y-4">
                         {error && (
                             <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-center gap-2 animate-scale-in border border-destructive/30">
-                                <AlertCircle className="h-4 w-4 animate-bounce" />
+                                <AlertCircle className="h-4 w-4 animate-bounce shrink-0" />
                                 <div className="flex-1">
                                     {error}
                                     {countdown !== null && countdown > 0 && (
@@ -209,12 +222,22 @@ export default function LoginPage() {
                                 isSignUp ? "Sign Up" : "Sign In"
                             )}
                         </Button>
+                        {showDemoBypass && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleDemoLogin}
+                                className="w-full border-accent/50 text-accent hover:bg-accent/10 transition-all hover-scale mt-2"
+                            >
+                                Continue in Demo Mode
+                            </Button>
+                        )}
                     </form>
                 </CardContent>
-                <CardFooter className="flex flex-col gap-4 justify-center">
+                <CardFooter className="flex flex-col gap-2 justify-center">
                     <Button
                         variant="ghost"
-                        className="underline hover-scale transition-all"
+                        className="underline hover-scale transition-all text-xs"
                         onClick={() => {
                             setIsSignUp(!isSignUp)
                             setError(null)
@@ -222,6 +245,13 @@ export default function LoginPage() {
                         }}
                     >
                         {isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up"}
+                    </Button>
+                    <Button
+                        variant="link"
+                        className="text-muted-foreground hover:text-primary text-xs hover-scale transition-all"
+                        onClick={handleDemoLogin}
+                    >
+                        ⚡ Bypass & Continue in Demo Mode
                     </Button>
                 </CardFooter>
             </Card>

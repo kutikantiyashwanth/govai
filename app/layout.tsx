@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
@@ -13,9 +13,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+  themeColor: "#6366F1",
+};
+
 export const metadata: Metadata = {
   title: "GovAssist - AI for Government Services",
-  description: "Simplifying government services with Generative AI.",
+  description: "Simplifying Indian government services with AI. Get help with Passport, PAN, Aadhaar, Voter ID, schemes and more.",
 };
 
 export default function RootLayout({

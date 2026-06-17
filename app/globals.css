@@ -257,7 +257,7 @@ body {
 
 /* Smooth transitions for interactive elements */
 .transition-all {
-  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: all 0.15s ease;
 }
 
 .hover-lift:hover {
@@ -287,6 +287,19 @@ body {
 /* Smooth scroll */
 * {
   scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+/* Mobile safe area for iPhone notch/home bar */
+.safe-area-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* Improve touch scrolling on mobile */
+.overscroll-contain {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Custom scrollbar */
@@ -462,12 +475,12 @@ h6 {
 }
 
 .animate-float {
-  animation: float 6s ease-in-out infinite;
+  animation: float 8s ease-in-out infinite;
 }
 
 .animate-float-delayed {
-  animation: float 6s ease-in-out infinite;
-  animation-delay: 3s;
+  animation: float 8s ease-in-out infinite;
+  animation-delay: 4s;
 }
 
 /* Moving gradient animation */
@@ -487,7 +500,7 @@ h6 {
 
 .animate-gradient-xy {
   background-size: 400% 400%;
-  animation: gradient-xy 15s ease infinite;
+  animation: gradient-xy 20s ease infinite;
 }
 
 /* Enhanced Glassmorphism */

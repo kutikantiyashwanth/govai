@@ -332,33 +332,34 @@ export function ChatInterface() {
     }, [initialQuery])
 
     return (
-        <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-5rem)] max-w-4xl mx-auto border sm:rounded-xl overflow-hidden shadow-2xl transition-all neon-border glass-premium animate-scale-in">
+        <div className="flex flex-col h-[calc(100dvh-3.5rem)] md:h-[calc(100dvh-3.5rem)] max-w-4xl mx-auto md:border md:rounded-xl overflow-hidden md:shadow-2xl md:my-4 md:neon-border md:glass-premium animate-scale-in">
             {/* Header / Settings Bar */}
-            <div className="flex items-center justify-between px-4 py-2 border-b bg-background/40 backdrop-blur-md">
+            <div className="flex items-center justify-between px-3 py-2 border-b bg-background/40 backdrop-blur-md">
                 <div className="flex items-center gap-2">
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setLanguage(l => l === 'en' ? 'hi' : 'en')}
-                        className={language === 'hi' ? "bg-orange-100 text-orange-700 hover:bg-orange-200 transition-all hover-scale" : "hover:bg-muted transition-all hover-scale"}
+                        className={`text-xs px-2 h-8 ${language === 'hi' ? "bg-orange-100 text-orange-700 hover:bg-orange-200" : "hover:bg-muted"} transition-colors`}
                     >
-                        <Globe className="h-4 w-4 mr-2 transition-all" />
-                        {language === 'en' ? "English" : "हिंदी"}
+                        <Globe className="h-3.5 w-3.5 mr-1" />
+                        <span className="hidden sm:inline">{language === 'en' ? "English" : "हिंदी"}</span>
+                        <span className="sm:hidden">{language === 'en' ? "EN" : "HI"}</span>
                     </Button>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => window.open("https://chatgpt.com", "_blank")}
-                        title="Open Official ChatGPT Website"
-                        className="hover:bg-muted transition-all hover-scale h-8 w-8 px-0"
+                        title="Open ChatGPT"
+                        className="hover:bg-muted h-8 w-8 px-0"
                     >
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="h-3.5 w-3.5" />
                     </Button>
                     <Select value={provider} onValueChange={(val: "openai" | "grok") => setProvider(val)}>
-                        <SelectTrigger className="w-[140px] h-8 text-xs transition-all hover-lift">
+                        <SelectTrigger className="w-[110px] sm:w-[140px] h-8 text-xs">
                             <SelectValue placeholder="AI Model" />
                         </SelectTrigger>
                         <SelectContent>
@@ -370,23 +371,23 @@ export function ChatInterface() {
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 overscroll-contain">
                 {messages.map((msg) => (
                     <ChatMessage key={msg.id} role={msg.role} content={msg.content} attachments={msg.attachments} />
                 ))}
                 {isLoading && (
-                    <div className="ml-12 flex items-center gap-2 text-muted-foreground animate-fade-in">
+                    <div className="ml-8 sm:ml-12 flex items-center gap-2 text-muted-foreground animate-fade-in">
                         <div className="flex space-x-1">
                             <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                             <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                             <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
                         </div>
-                        <span className="text-sm font-medium gradient-text">{provider === "openai" ? "ChatGPT" : "Grok"} is thinking...</span>
+                        <span className="text-sm font-medium gradient-text">GovAssist is thinking...</span>
                     </div>
                 )}
                 {error && (
                     <div className="mx-auto flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 rounded-md max-w-sm animate-scale-in">
-                        <AlertCircle className="h-4 w-4 animate-bounce" />
+                        <AlertCircle className="h-4 w-4 flex-shrink-0" />
                         <span>{error}</span>
                     </div>
                 )}
@@ -394,26 +395,26 @@ export function ChatInterface() {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 border-t bg-background">
+            <div className="p-2 sm:p-4 border-t bg-background safe-area-bottom">
                 {/* Attachments Preview */}
                 {attachments.length > 0 && (
-                    <div className="mb-3 flex flex-wrap gap-2 animate-fade-in">
+                    <div className="mb-2 flex flex-wrap gap-1.5 animate-fade-in">
                         {attachments.map((att, idx) => (
-                            <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md text-sm border animate-scale-in hover-lift transition-all">
+                            <div key={idx} className="flex items-center gap-1.5 px-2 py-1 bg-muted rounded-md text-xs border">
                                 {att.type === "file" ? (
                                     att.mimeType?.startsWith("image/") ? (
-                                        <ImageIcon className="h-4 w-4 text-blue-600 animate-bounce" />
+                                        <ImageIcon className="h-3 w-3 text-blue-600" />
                                     ) : (
-                                        <FileText className="h-4 w-4 text-green-600 animate-bounce" />
+                                        <FileText className="h-3 w-3 text-green-600" />
                                     )
                                 ) : (
-                                    <LinkIcon className="h-4 w-4 text-purple-600 animate-bounce" />
+                                    <LinkIcon className="h-3 w-3 text-purple-600" />
                                 )}
-                                <span className="max-w-[200px] truncate">{att.name}</span>
+                                <span className="max-w-[120px] sm:max-w-[200px] truncate">{att.name}</span>
                                 <button
                                     type="button"
                                     onClick={() => removeAttachment(idx)}
-                                    className="ml-1 hover:bg-destructive/20 rounded-sm p-0.5 transition-all hover-scale"
+                                    className="ml-0.5 hover:bg-destructive/20 rounded-sm p-0.5 transition-colors"
                                 >
                                     <X className="h-3 w-3 text-destructive" />
                                 </button>
@@ -422,42 +423,26 @@ export function ChatInterface() {
                     </div>
                 )}
 
-                {/* URL Input Dialog */}
+                {/* URL Input */}
                 {showUrlInput && (
-                    <div className="mb-3 flex gap-2 animate-slide-in-left">
+                    <div className="mb-2 flex gap-1.5 animate-slide-in-left">
                         <Input
                             placeholder="Enter URL (e.g., https://example.com)"
                             value={urlInput}
                             onChange={(e) => setUrlInput(e.target.value)}
                             onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                    e.preventDefault()
-                                    handleAddUrl()
-                                }
+                                if (e.key === "Enter") { e.preventDefault(); handleAddUrl() }
                             }}
-                            className="flex-1 transition-all focus:shadow-[0_0_15px_rgba(var(--primary),0.3)]"
+                            className="flex-1 h-8 text-sm"
                             autoFocus
                         />
-                        <Button type="button" onClick={handleAddUrl} size="sm" className="hover-scale transition-all">
-                            Add
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={() => {
-                                setShowUrlInput(false)
-                                setUrlInput("")
-                            }}
-                            size="sm"
-                            variant="outline"
-                            className="hover-scale transition-all"
-                        >
-                            Cancel
-                        </Button>
+                        <Button type="button" onClick={handleAddUrl} size="sm" className="h-8 px-3">Add</Button>
+                        <Button type="button" onClick={() => { setShowUrlInput(false); setUrlInput("") }} size="sm" variant="outline" className="h-8 px-3">✕</Button>
                     </div>
                 )}
 
-                <form onSubmit={(e) => handleSendMessage(e)} className="flex gap-2">
-                    {/* File Upload Button */}
+                <form onSubmit={(e) => handleSendMessage(e)} className="flex items-center gap-1.5">
+                    {/* Hidden file input */}
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -466,54 +451,57 @@ export function ChatInterface() {
                         onChange={handleFileSelect}
                         className="hidden"
                     />
+
+                    {/* Attach File */}
                     <Button
                         type="button"
                         variant="outline"
                         size="icon"
                         title="Attach File"
                         onClick={() => fileInputRef.current?.click()}
-                        className="hover-scale transition-all hover:bg-muted"
+                        className="h-9 w-9 flex-shrink-0 hover:bg-muted transition-colors"
                     >
-                        <Paperclip className="h-4 w-4 text-muted-foreground transition-all" />
+                        <Paperclip className="h-4 w-4 text-muted-foreground" />
                     </Button>
 
-                    {/* URL Button */}
+                    {/* URL Button - hidden on xs, shown sm+ */}
                     <Button
                         type="button"
                         variant="outline"
                         size="icon"
                         title="Add URL"
                         onClick={() => setShowUrlInput(!showUrlInput)}
-                        className="hover-scale transition-all hover:bg-muted"
+                        className="hidden sm:flex h-9 w-9 flex-shrink-0 hover:bg-muted transition-colors"
                     >
-                        <LinkIcon className="h-4 w-4 text-muted-foreground transition-all" />
+                        <LinkIcon className="h-4 w-4 text-muted-foreground" />
                     </Button>
 
-                    {/* Voice Input Button */}
+                    {/* Voice Input */}
                     <Button
                         type="button"
                         variant="outline"
                         size="icon"
-                        title={isListening ? "Stop Listening" : "Start Voice Input"}
+                        title={isListening ? "Stop Listening" : "Voice Input"}
                         onClick={handleVoiceInput}
-                        className={`transition-all ${isListening ? "bg-red-500/20 text-red-500 animate-pulse border-red-500/50" : "hover-scale hover:bg-muted"}`}
+                        className={`h-9 w-9 flex-shrink-0 transition-colors ${isListening ? "bg-red-500/20 text-red-500 border-red-500/50 animate-pulse" : "hover:bg-muted"}`}
                     >
-                        <Mic className={`h-4 w-4 transition-all ${isListening ? "animate-bounce" : "text-muted-foreground"}`} />
+                        <Mic className={`h-4 w-4 ${isListening ? "" : "text-muted-foreground"}`} />
                     </Button>
 
                     <Input
-                        placeholder={`Ask ${provider === "openai" ? "ChatGPT" : "Grok"}...`}
+                        placeholder="Ask about government services..."
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         disabled={isLoading}
-                        className="flex-1 transition-all focus:ring-2 focus:ring-primary focus:shadow-[0_0_20px_rgba(var(--primary),0.2)] bg-muted/30"
+                        className="flex-1 h-9 text-sm bg-muted/30 focus:ring-1 focus:ring-primary"
                     />
+
                     <Button
                         type="submit"
                         disabled={isLoading || (!inputValue.trim() && attachments.length === 0)}
-                        className={`hover-scale transition-all glow-primary ${inputValue.trim() ? 'animate-pulse' : ''}`}
+                        className="h-9 w-9 flex-shrink-0 p-0 glow-primary"
                     >
-                        {isLoading ? "..." : <Send className="h-4 w-4" />}
+                        {isLoading ? <span className="text-xs">...</span> : <Send className="h-4 w-4" />}
                         <span className="sr-only">Send</span>
                     </Button>
                 </form>
